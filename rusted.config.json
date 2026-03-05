@@ -1,0 +1,21 @@
+{
+    "_comment": "hybrid-RUSTED runtime configuration. Commit a template; local overrides stay in .brain/",
+    "runs": 10,
+    "epsilon": {
+        "default": {
+            "mean": 1e-9,
+            "max": 1e-6
+        },
+        "integer": {
+            "mean": 0,
+            "max": 0
+        },
+        "float": {
+            "mean": 1e-7,
+            "max": 1e-4
+        }
+    },
+    "sourceWorkspace": "",
+    "rustWorkspace": "",
+    "timeout_ms": 30000
+}

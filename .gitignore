@@ -1,0 +1,15 @@
+# Private reasoning & internal notes (not for public repo)
+.brain/
+
+# Node / build
+node_modules/
+dist/
+target/
+
+# Runtime artifacts
+*.log
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
