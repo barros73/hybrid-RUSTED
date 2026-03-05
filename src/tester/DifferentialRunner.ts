@@ -86,10 +86,24 @@ export class DifferentialRunner {
                 cwd,
                 timeout: this.config.timeout_ms,
                 encoding: 'utf-8',
-            }).trim();
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : String(err);
-            return JSON.stringify({ __error__: msg });
+                stdio: ['ignore', 'pipe', 'pipe'], // Capture stdout and stderr
+            }).toString().trim();
+        } catch (err: any) {
+            const stderr = err.stderr ? err.stderr.toString().trim() : '';
+            const stdout = err.stdout ? err.stdout.toString().trim() : '';
+
+            let status = 'EXEC_ERROR';
+            if (err.code === 'ETIMEDOUT') status = 'TIMEOUT';
+            if (err.status === 127) status = 'COMMAND_NOT_FOUND';
+
+            return JSON.stringify({
+                __error__: true,
+                status,
+                message: err.message,
+                stderr,
+                stdout,
+                cmd: `${cmd} ${args.join(' ')}`
+            });
         }
     }
 

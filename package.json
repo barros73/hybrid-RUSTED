@@ -2,7 +2,7 @@
     "name": "hybrid-rusted",
     "displayName": "Hybrid RUSTED",
     "description": "RT-Engine: Reverse-Transpilation Orchestrator with Statistical Differential Testing",
-    "version": "0.1.0",
+    "version": "0.6.2",
     "license": "Apache-2.0",
     "bin": {
         "hybrid-rusted": "./dist/cli.js"

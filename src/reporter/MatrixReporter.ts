@@ -32,9 +32,10 @@ export class MatrixReporter {
     private reportPath: string;
 
     constructor(private config: RustedConfig) {
-        // Report is written to rust workspace root
+        // Report is written to source workspace .hybrid/ folder
         this.reportPath = path.join(
-            this.config.rustWorkspace || process.cwd(),
+            this.config.sourceWorkspace || process.cwd(),
+            '.hybrid',
             REPORT_FILE
         );
     }

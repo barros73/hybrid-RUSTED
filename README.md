@@ -1,5 +1,5 @@
 # 🦀 hybrid-RUSTED — RT-Engine (Reverse-Transpilation Engine)
-> *v0.1.0 · 2026-03-05 · Copyright Fabrizio Baroni · Apache 2.0*
+> *v0.6.2 · 2026-03-05 · Copyright Fabrizio Baroni · Apache 2.0*
 > **[github.com/barros73/hybrid-RUSTED](https://github.com/barros73/hybrid-RUSTED)**
 
 A **deterministic transpilation orchestrator** that converts any legacy codebase (Python, C++) into Rust — using the Hybrid Ecosystem's structural intelligence to guarantee zero-regression through automated **Differential Testing**.

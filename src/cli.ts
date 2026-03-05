@@ -33,7 +33,7 @@ const program = new Command();
 program
     .name('hybrid-rusted')
     .description('🦀 RT-Engine — Reverse-Transpilation Orchestrator with Statistical Differential Testing')
-    .version('0.1.0');
+    .version('0.6.2');
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 program
@@ -125,7 +125,49 @@ program
         console.log('\n✅ Test run complete. Run `hybrid-rusted status` for full report.');
     });
 
-// ── STATUS ────────────────────────────────────────────────────────────────────
+// ── SCAN ──────────────────────────────────────────────────────────────────────
+program
+    .command('scan')
+    .description('Sync conversion state with hybrid-tree.json nodes')
+    .action(() => {
+        const config = loadConfig(process.cwd());
+        const wm = new WorkspaceManager(config);
+        const { rust } = wm.load();
+        const tracker = new ConversionTracker(config);
+
+        if (!fs.existsSync(rust.treeJsonPath)) {
+            console.error(`❌ hybrid-tree.json not found in Rust workspace.`);
+            process.exit(1);
+        }
+
+        const tree = JSON.parse(fs.readFileSync(rust.treeJsonPath, 'utf-8'));
+        const state = tracker.load();
+
+        // Flatten tree nodes to get IDs
+        function flatten(nodes: any[]): string[] {
+            let ids: string[] = [];
+            for (const n of nodes) {
+                if (n.id) ids.push(n.id);
+                if (n.children) ids.push(...flatten(n.children));
+            }
+            return ids;
+        }
+
+        const currentIds = flatten(tree.nodes ?? tree.children ?? []);
+        let added = 0;
+
+        for (const id of currentIds) {
+            if (!state.nodes[id]) {
+                state.nodes[id] = { status: 'PENDING', lastResult: null };
+                added++;
+            }
+        }
+
+        tracker.save(state);
+        console.log(`\n✅ Scan complete. Sync'd ${currentIds.length} nodes (${added} new).`);
+        tracker.printTable();
+    });
+
 program
     .command('status')
     .description('Print conversion progress table across both workspaces')

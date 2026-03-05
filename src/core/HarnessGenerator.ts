@@ -146,16 +146,22 @@ name = "run_node"
 path = "src/main.rs"
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 `;
     }
 
     private buildRustHarness(nodes: TreeNode[]): string {
+        const structs = nodes
+            .map(n => this.buildRustInputStruct(n))
+            .join('\n\n');
+
         const matchArms = nodes
             .map(n =>
                 `        "${n.id}" => {\n` +
-                `            // TODO: import from generated module and call ${n.fnName}\n` +
-                `            todo!("Implement harness for ${n.id}")\n` +
+                `            let input: ${this.toPascalCase(n.id)}Input = serde_json::from_value(data).expect("Invalid node input");\n` +
+                `            // TODO: call ${n.fnName}(input)\n` +
+                `            todo!("Call actual implementation for ${n.id} with {:?}", input)\n` +
                 `        }`
             )
             .join(',\n');
@@ -166,6 +172,9 @@ serde_json = "1"
 
 use std::env;
 use std::fs;
+use serde::{Deserialize, Serialize};
+
+${structs}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -176,7 +185,7 @@ fn main() {
 
     let node_id   = &args[1];
     let input_raw = fs::read_to_string(&args[2]).expect("Cannot read input file");
-    let _data: serde_json::Value = serde_json::from_str(&input_raw).expect("Invalid JSON");
+    let data: serde_json::Value = serde_json::from_str(&input_raw).expect("Invalid JSON");
 
     let result: serde_json::Value = match node_id.as_str() {
 ${matchArms}
@@ -188,7 +197,45 @@ ${matchArms}
 
     println!("{}", serde_json::json!({ "result": result }));
 }
+
+fn to_json<T: Serialize>(val: T) -> serde_json::Value {
+    serde_json::to_value(val).unwrap()
+}
 `;
+    }
+
+    private buildRustInputStruct(node: TreeNode): string {
+        const fields = Object.entries(node.inputSchema)
+            .map(([name, field]) => {
+                const rustType = this.mapToRustType(field.type);
+                return `    pub ${name}: ${rustType},`;
+            })
+            .join('\n');
+
+        return `#[derive(Debug, Serialize, Deserialize)]\n` +
+            `pub struct ${this.toPascalCase(node.id)}Input {\n` +
+            `${fields}\n` +
+            `}`;
+    }
+
+    private mapToRustType(type: string): string {
+        switch (type) {
+            case 'float': return 'f64';
+            case 'int': return 'i64';
+            case 'bool': return 'bool';
+            case 'string': return 'String';
+            case 'float[]': return 'Vec<f64>';
+            case 'int[]': return 'Vec<i64>';
+            default: return 'serde_json::Value';
+        }
+    }
+
+    private toPascalCase(str: string): string {
+        return str
+            .replace(/[^a-zA-Z0-9]+/g, ' ')
+            .split(' ')
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join('');
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
