@@ -99,12 +99,19 @@ export class StatisticalAnalyzer {
 
     private computeDiff(pair: OutputPair): number {
         try {
-            const a = this.flattenNumeric(JSON.parse(pair.sourceOutput));
-            const b = this.flattenNumeric(JSON.parse(pair.rustOutput));
+            const a = this.flatten(JSON.parse(pair.sourceOutput));
+            const b = this.flatten(JSON.parse(pair.rustOutput));
             const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
             let total = 0;
             for (const k of keys) {
-                total += Math.abs((a[k] ?? 0) - (b[k] ?? 0));
+                const valA = a[k];
+                const valB = b[k];
+                if (valA === valB) continue;
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    total += Math.abs(valA - valB);
+                } else {
+                    return Number.MAX_SAFE_INTEGER;
+                }
             }
             return total;
         } catch {
@@ -112,15 +119,15 @@ export class StatisticalAnalyzer {
         }
     }
 
-    private flattenNumeric(obj: unknown, prefix = ''): Record<string, number> {
-        const result: Record<string, number> = {};
-        if (typeof obj === 'number') {
+    private flatten(obj: unknown, prefix = ''): Record<string, unknown> {
+        const result: Record<string, unknown> = {};
+        if (typeof obj === 'number' || typeof obj === 'string' || typeof obj === 'boolean' || obj === null) {
             result[prefix || 'value'] = obj;
         } else if (Array.isArray(obj)) {
-            obj.forEach((v, i) => Object.assign(result, this.flattenNumeric(v, `${prefix}[${i}]`)));
+            obj.forEach((v, i) => Object.assign(result, this.flatten(v, `${prefix}[${i}]`)));
         } else if (obj && typeof obj === 'object') {
             for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-                Object.assign(result, this.flattenNumeric(v, prefix ? `${prefix}.${k}` : k));
+                Object.assign(result, this.flatten(v, prefix ? `${prefix}.${k}` : k));
             }
         }
         return result;
@@ -138,8 +145,10 @@ export class StatisticalAnalyzer {
     private checkSourceStability(pairs: OutputPair[]): number {
         try {
             const sourceValues = pairs.map(p => {
-                const flat = this.flattenNumeric(JSON.parse(p.sourceOutput));
-                return Object.values(flat).reduce((a, b) => a + b, 0);
+                const flat = this.flatten(JSON.parse(p.sourceOutput));
+                return Object.values(flat)
+                    .filter(v => typeof v === 'number')
+                    .reduce((a, b) => (a as number) + (b as number), 0) as number;
             });
             const m = this.mean(sourceValues);
             return this.stddev(sourceValues, m);
